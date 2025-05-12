@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main(){
   runApp(MaterialApp(
@@ -73,12 +74,12 @@ class FinalPage extends StatelessWidget{
         
         child: Container(
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(20),
             color: bgcolor,
             
           ),
-          height: 400,
-          width: 400,
+          height: 300,
+          width: 300,
           
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -90,7 +91,7 @@ class FinalPage extends StatelessWidget{
           ),
           Text(
             "Scored: $score",
-            style: TextStyle(fontSize: 24,color: Colors.white),
+            style: TextStyle(fontSize: 24,color: Colors.grey,fontWeight: FontWeight.w200 ),
           ),
           Text(
             "Player $winner Won",
@@ -115,7 +116,7 @@ class FinalPage extends StatelessWidget{
   }
 }
 
-class SecondPage extends StatefulWidget{
+class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
 
   @override
@@ -123,90 +124,158 @@ class SecondPage extends StatefulWidget{
 }
 
 class _SecondPageState extends State<SecondPage> {
-    int scoreA = 0;
-    int scoreB = 0;
-    double heightA=0;
-    double heightB=0;
-    
+  int scoreA = 0;
+  int scoreB = 0;
+  double heightA = 0;
+  double heightB = 0;
+  bool initialized = false;
 
-    bool initialized = false;
+  int countdown = 3;
+  bool gameStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    startCountdown();
+  }
+
+  void startCountdown() async {
+    for (int i = 3; i >= 1; i--) {
+      setState(() {
+        countdown = i;
+      });
+      await Future.delayed(Duration(milliseconds: 600));
+    }
+
+    setState(() {
+      gameStarted = true;
+      double screenHeight = MediaQuery.of(context).size.height;
+      heightA = screenHeight / 2;
+      heightB = screenHeight / 2;
+    });
+  }
+
+  void endGame(String winner, int score, Color color, Color bgColor) async {
+    HapticFeedback.heavyImpact(); // vibrate
+    await Future.delayed(Duration(milliseconds: 300)); // small pause
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FinalPage(score, winner, color, bgColor),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    double screenheight =MediaQuery.of(context).size.height;
-    if (initialized==false) {
-    heightA = MediaQuery.of(context).size.height / 2;
-    heightB = MediaQuery.of(context).size.height / 2;
-    
-    }
-    initialized=true;
-    
-       return Scaffold(
-      body: Column(
+    double screenheight = MediaQuery.of(context).size.height;
+
+    return Scaffold(
+      body: Stack(
         children: [
-          MaterialButton(
-            padding: EdgeInsets.all(0),
-             onPressed: () {
-              if(heightA >= screenheight-66 || heightB >= screenheight-66){
-               Navigator.push(context, MaterialPageRoute(builder: (context) => FinalPage(scoreB, "B", Colors.yellowAccent,Colors.lightBlueAccent)));
-               }
-              setState(() {
-                  heightB += 20;
-                  heightA-=20;
-                  scoreB += 5;
-              });
-            
-            },
-           
-            child: Container(
-              
-              color: Colors.yellowAccent,
-              height:heightB,
-              width: double.infinity, 
-              alignment: Alignment.topLeft,
-              padding: EdgeInsets.all(25),
-              child: Row(
-                children: [                 
-                     Expanded(
-                     child: Text("Player B", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),),
-                     ),
-                     Text(scoreB.toString(),style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),),   
-                ],
+          Column(
+            children: [
+              MaterialButton(
+                padding: EdgeInsets.zero,
+                onPressed: gameStarted
+                    ? () {
+                        if (heightA >= screenheight - 66 ||
+                            heightB >= screenheight - 66) {
+                          endGame("B", scoreB, Colors.yellowAccent,
+                              Colors.lightBlueAccent);
+                          return;
+                        }
+                        setState(() {
+                          heightB += 20;
+                          heightA -= 20;
+                          scoreB += 5;
+                        });
+                      }
+                    : null,
+                child: Container(
+                  color: Colors.yellowAccent,
+                  height: heightB,
+                  width: double.infinity,
+                  alignment: Alignment.topLeft,
+                  padding: EdgeInsets.all(25),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Player B",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Text(
+                        scoreB.toString(),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              MaterialButton(
+                padding: EdgeInsets.zero,
+                onPressed: gameStarted
+                    ? () {
+                        if (heightA >= screenheight - 66 ||
+                            heightB >= screenheight - 66) {
+                          endGame("A", scoreA, Colors.lightBlueAccent,
+                              Colors.yellowAccent);
+                          return;
+                        }
+                        setState(() {
+                          heightA += 20;
+                          heightB -= 20;
+                          scoreA += 5;
+                        });
+                      }
+                    : null,
+                child: Container(
+                  color: Colors.lightBlueAccent,
+                  height: heightA,
+                  width: double.infinity,
+                  alignment: Alignment.bottomLeft,
+                  padding: EdgeInsets.all(25),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Player A",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Text(
+                        scoreA.toString(),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Countdown overlay
+          if (!gameStarted)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              alignment: Alignment.center,
+              child: Text(
+                "$countdown",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 100,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-    MaterialButton(
-      padding: EdgeInsets.all(0),
-      onPressed: () {
-        if (heightA >= screenheight - 66 || heightB >= screenheight - 66) {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => FinalPage(scoreA, "A", Colors.lightBlueAccent,Colors.yellowAccent)));
-          return;
-        }
-        setState(() {
-          heightA += 20;
-          heightB -= 20;
-          scoreA += 5;
-        });
-      },
-      child: Container(
-        color: Colors.lightBlueAccent,
-        height: heightA,
-        width: double.infinity, 
-        alignment: Alignment.bottomLeft,
-        padding: EdgeInsets.all(25),
-        
-        child:Row(
-          children: [                 
-               Expanded(
-               child: Text("Player A", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),),
-               ),
-               Text(scoreA.toString(),style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),),   
-          ],
-        ),
-      ),
-    ),
         ],
       ),
-    ); 
-    }
-   
+    );
   }
+}
